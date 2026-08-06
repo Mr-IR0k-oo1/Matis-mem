@@ -8,8 +8,8 @@ pub enum MatisError {
     Json(#[from] serde_json::Error),
     #[error("Not found: {0}")]
     NotFound(String),
-    #[error("Executor: {0}")]
-    Executor(String),
+    #[error("Capture: {0}")]
+    Capture(String),
     #[error("Validation: {0}")]
     Validation(String),
 }

@@ -1,10 +1,15 @@
 #![allow(dead_code, unreachable_patterns)]
+mod api;
+mod capture;
 mod config;
 mod context;
+mod core;
 mod data;
 mod error;
-mod executor;
+mod graph;
+mod memory;
 mod platform;
+mod storage;
 mod ui;
 mod watcher;
 
@@ -26,6 +31,14 @@ fn main() {
                 println!("matis-mem v{} ({})", env!("CARGO_PKG_VERSION"), platform::os_name());
                 return;
             }
+            "--daemon" | "-d" => {
+                config::init();
+                if let Err(e) = run_daemon() {
+                    eprintln!("matisd error: {}", e);
+                    std::process::exit(1);
+                }
+                return;
+            }
             "--help" | "-h" => {
                 config::init();
                 print_help();
@@ -36,7 +49,7 @@ fn main() {
     }
 
     if !platform::is_tty() {
-        eprintln!("matis-mem: requires an interactive terminal");
+        eprintln!("matis-mem: requires an interactive terminal (or run with --daemon)");
         std::process::exit(1);
     }
 
@@ -46,6 +59,24 @@ fn main() {
         eprintln!("matis-mem: {}", e);
         std::process::exit(1);
     }
+}
+
+fn run_daemon() -> Result<()> {
+    config::ensure_dirs()?;
+    println!("matisd: Local daemon engine running in background...");
+    let event_store = storage::EventStore::new();
+    let (bus, _rx) = capture::EventBus::new();
+
+    if let Ok(rx) = watcher::log_watcher::start() {
+        for evt in rx {
+            if let watcher::log_watcher::WatchEvent::NewLog(log) = evt {
+                let ev = capture::generic::GenericCapture::parse_log(&log);
+                let _ = event_store.append(&ev);
+                bus.publish(ev);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn run() -> Result<()> {
@@ -86,44 +117,38 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> 
             last = Instant::now();
         }
 
-        if app.should_quit { break; }
+        if app.should_quit {
+            break;
+        }
     }
     Ok(())
 }
 
 fn print_help() {
     println!("matis-mem v{} — {}", env!("CARGO_PKG_VERSION"), platform::os_name());
+    println!("Terminal Engineering Memory & Context Layer");
     println!();
     println!("USAGE");
-    println!("  matis-mem              Launch TUI");
+    println!("  matis-mem              Launch TUI interface");
+    println!("  matis-mem --daemon     Launch local matisd daemon engine");
     println!("  matis-mem --version    Version + OS");
     println!("  matis-mem --help       This help");
     println!();
     println!("DATA:   {}", platform::data_dir_display());
+    println!("EVENTS: {}", config::events_dir().display());
     println!("SHIMS:  {}", config::shims_dir().display());
     println!();
     println!("TABS");
-    println!("  [1] RUN        Run prompts with automatic context injection");
-    println!("  [2] AGENTS     Live feed of external agent sessions");
-    println!("  [3] SHIMS      Install logging wrappers for agent CLIs");
-    println!("  [4] KNOWLEDGE  Browse, add, import, export knowledge base");
+    println!("  [1] TODAY     Daily engineering dashboard & prompt capture");
+    println!("  [2] TIMELINE  Chronological engineering event stream");
+    println!("  [3] MEMORY    Working, Episodic, and Semantic memory store");
+    println!("  [4] GRAPH     Event, dependency, and knowledge network inspector");
+    println!("  [5] SETTINGS  Passive capture shim installers and daemon options");
     println!();
     println!("GLOBAL KEYS");
-    println!("  1-4 / Tab     Switch tabs");
-    println!("  Ctrl+R / F5   Run prompt");
+    println!("  1-5 / Tab     Switch tabs");
     println!("  Ctrl+N        New project");
-    println!("  Ctrl+K        Add knowledge");
-    println!("  Ctrl+M        Refresh model list");
-    println!("  Ctrl+I        Import knowledge file/dir");
-    println!("  Ctrl+E        Export all knowledge as bundle");
     println!("  q / Ctrl+C    Quit");
-    println!();
-    println!("MODELS (auto-detected at startup)");
-    println!("  ollama/*      requires: ollama + pulled models");
-    println!("  gemini-cli    requires: npm i -g @google/gemini-cli && gemini auth");
-    println!("  claude        requires: npm i -g @anthropic-ai/claude-code");
-    println!("  amp           requires: ampcode.com");
-    println!("  vibe          requires: vibe or cursor CLI");
     println!();
     for line in platform::install_instructions() {
         println!("  {}", line);

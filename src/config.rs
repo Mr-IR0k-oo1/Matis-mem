@@ -10,17 +10,44 @@ pub fn init() {
     DATA_DIR.set(dir).ok();
 }
 
-pub fn data_dir()     -> &'static PathBuf { DATA_DIR.get().expect("config::init not called") }
-pub fn projects_dir() -> PathBuf { data_dir().join("01-projects") }
-pub fn sessions_dir() -> PathBuf { data_dir().join("04-sessions") }
-pub fn knowledge_dir()-> PathBuf { data_dir().join("02-knowledge") }
-pub fn external_dir() -> PathBuf { data_dir().join("external") }
-pub fn shims_dir()    -> PathBuf { data_dir().join("shims") }
+pub fn data_dir() -> &'static PathBuf {
+    DATA_DIR.get().expect("config::init not called")
+}
+pub fn projects_dir() -> PathBuf {
+    data_dir().join("01-projects")
+}
+pub fn sessions_dir() -> PathBuf {
+    data_dir().join("04-sessions")
+}
+pub fn knowledge_dir() -> PathBuf {
+    data_dir().join("02-knowledge")
+}
+pub fn external_dir() -> PathBuf {
+    data_dir().join("external")
+}
+pub fn shims_dir() -> PathBuf {
+    data_dir().join("shims")
+}
+pub fn events_dir() -> PathBuf {
+    data_dir().join("events")
+}
+pub fn memory_dir() -> PathBuf {
+    data_dir().join("memory")
+}
+pub fn graph_dir() -> PathBuf {
+    data_dir().join("graph")
+}
 
 pub fn ensure_dirs() -> anyhow::Result<()> {
     for d in &[
-        projects_dir(), sessions_dir(), knowledge_dir(),
-        external_dir(), shims_dir(),
+        projects_dir(),
+        sessions_dir(),
+        knowledge_dir(),
+        external_dir(),
+        shims_dir(),
+        events_dir(),
+        memory_dir(),
+        graph_dir(),
         data_dir().join("03-prompts"),
         data_dir().join("05-scratch"),
         data_dir().join("06-agents/_shared"),

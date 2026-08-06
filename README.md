@@ -39,7 +39,7 @@ Every prompt automatically includes this context. No more repeating yourself.
 Every run is saved and reused.
 - last *N* sessions are injected into new prompts
 - no copy-pasting
-- real continuity across work
+- real continuity across workv
 
 ---
 
